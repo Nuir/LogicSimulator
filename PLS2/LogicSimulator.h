@@ -5,6 +5,7 @@
 
 #define LSINPUT 0
 #define LSOUTPUT 1
+#define LSAND 2
 
 
 //enum변수입니다.
@@ -61,11 +62,22 @@ public:
 							 (clicked.x - 1, clicked.y + 1), (clicked.x, clicked.y + 1), (clicked.x + 1, clicked.y + 1) };
 	};
 
+	struct AndGate {
+		int* value = NULL; // 가지는 값.
+		CString name;
+		CPoint clicked{ -1, -1 }; // 사각형의 중점.
+		CPoint min; // 사각형의 왼쪽 끝점
+		CPoint max; // 사각형의 오른쪽 끝점
+		CPoint output[1];  // 값을 내보낼 수 있는 점.
+		CPoint input[2];
+	};
+
 //변수입니다.
 public:
 	PointInfo pif[INDEX][INDEX];
 	Input in[INDEX];
 	Output out[INDEX];
+	AndGate and[INDEX];
 
 	CPoint downPoint;
 	CPoint upPoint;
@@ -99,8 +111,10 @@ public:
 
 	WhatGate whatgate = nothing;
 
+	bool canDrawState = false;
 	int count_input = -1;
 	int count_output = -1;
+	int count_and = -1;
 
 	int create = -1; // 이 숫자에 따라 무엇을 생성할 지가 정해짐.
 
@@ -112,4 +126,5 @@ public:
 	void print(LogicSimulator ls);
 	void create_input(Input* in, CPoint clicked);
 	void create_output(Output* out, CPoint clicked);
+	void create_and(AndGate *and, CPoint clicked);
 };

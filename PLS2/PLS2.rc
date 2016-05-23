@@ -87,6 +87,8 @@ IDB_BITMAP2             BITMAP                  "res\\bitmap2.bmp"
 
 IDB_BITMAP0             BITMAP                  "res\\bitmap3.bmp"
 
+IDB_BITMAP4             BITMAP                  "res\\bitmap4.bmp"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -184,6 +186,7 @@ BEGIN
     BEGIN
         MENUITEM "입력",                          ID_32771
         MENUITEM "출력",                          ID_32772
+        MENUITEM "AND",                         ID_32773
     END
 END
 

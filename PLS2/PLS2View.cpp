@@ -31,6 +31,7 @@ BEGIN_MESSAGE_MAP(CPLS2View, CView)
 	ON_WM_MOUSEMOVE()
 	ON_COMMAND(ID_32771, &CPLS2View::Create_Input_BCLK)
 	ON_COMMAND(ID_32772, &CPLS2View::Create_Output_BCLK)
+	ON_COMMAND(ID_32773, &CPLS2View::Create_AndGate_BCLK)
 END_MESSAGE_MAP()
 
 // CPLS2View 생성/소멸
@@ -75,6 +76,9 @@ void CPLS2View::OnDraw(CDC* pDC)
 {
 	CPLS2Doc* pDoc = GetDocument();
 
+	
+	
+
 	ASSERT_VALID(pDoc);
 	if (!pDoc)
 		return;
@@ -105,6 +109,21 @@ void CPLS2View::OnDraw(CDC* pDC)
 		if (pDoc->ls.out[i].clicked.x != 0 && pDoc->ls.out[i].clicked.y != 0)
 		{
 			pDC->Ellipse(pDoc->ls.out[i].min.x * 10, pDoc->ls.out[i].min.y * 10, pDoc->ls.out[i].max.x * 10, pDoc->ls.out[i].max.y * 10);
+		}
+	}
+	//존재하는 and게이트의 개수만큼 그려줌.(min(왼쪽끝)점과 max(오른쪽)점을 가짐)
+
+	for (i = 0; i <= pDoc->ls.count_and; i++) {
+		if (pDoc->ls.and[i].clicked.x != 0 && pDoc->ls.and[i].clicked.y != 0)
+		{
+			CBitmap bitmap;
+			bitmap.LoadBitmapW(IDB_BITMAP4);
+			BITMAP bmpinfo;
+			bitmap.GetBitmap(&bmpinfo);
+			CDC dcmem;
+			dcmem.CreateCompatibleDC(pDC);
+			dcmem.SelectObject(&bitmap);
+			pDC->BitBlt(pDoc->ls.and[i].min.x*10, pDoc->ls.and[i].min.y*10, bmpinfo.bmWidth, bmpinfo.bmHeight, &dcmem, 0, 0, SRCCOPY);
 		}
 	}
 }
@@ -173,10 +192,17 @@ void CPLS2View::OnLButtonDown(UINT nFlags, CPoint point)
 			pDoc->ls.create = -1;
 			Invalidate();
 			break;
+		case LSAND:
+			pDoc->ls.create_and(&pDoc->ls.and[pDoc->ls.count_and], pointofpif); // 만드는 함수 호출.
+			pDoc->ls.create = -1;
+			Invalidate();
+			break;
 		}
 	}
 
 	else {
+		if (pDoc->ls.pif[p1.x / 10][p1.y / 10].lineok == TRUE)
+			pDoc->ls.canDrawState = TRUE;
 	}
 	/* //여기서 선을 그릴 수 있는 곳인지 판단.
 	else { // 그밖에 선을 그린다고 알고있을 때.
@@ -206,9 +232,13 @@ void CPLS2View::OnLButtonUp(UINT nFlags, CPoint point)
 	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
 	CPLS2Doc* pDoc = GetDocument();
 	CClientDC dc(this);
+	CDC* pDC = GetDC();
+
 	pDoc->ls.upPoint = DividedByTen(point); //마우스를 누르기 시작한 지점의 좌표를 받을 수 있음.
 
-	pDoc->ls.SavePointOnTheLine(old_start, old_end, old_wherefixed); // 선에대한 점을 저장.
+
+	if(pDoc->ls.canDrawState == TRUE)
+		pDoc->ls.SavePointOnTheLine(old_start, old_end, old_wherefixed); // 선에대한 점을 저장.
 
 	Invalidate();
 
@@ -217,7 +247,7 @@ void CPLS2View::OnLButtonUp(UINT nFlags, CPoint point)
 	old_start.y = 0;
 	old_end.x = 0;
 	old_end.y = 0;
-
+	pDoc->ls.canDrawState = FALSE;
 	CView::OnLButtonUp(nFlags, point);
 }
 
@@ -232,6 +262,9 @@ void CPLS2View::OnMouseMove(UINT nFlags, CPoint point)
 	CPoint pointofpif{ p1.x / 10, p1.y / 10 };
 	CPoint movedFirstPoint = DividedByTen(p1); // 마우스를 처음 누른 뒤 움직인 첫 위치
 	CPoint startPoint = DividedByTen(pDoc->ls.downPoint);
+
+	CDC* pDC = GetDC();
+
 
 	//"pDoc->ls.create >= 0" 이 상태는 단자 또는 게이트를 메뉴에서 클릭하여 그리려고 하는 상태임.
 	if (pDoc->ls.create >= 0) {
@@ -248,11 +281,28 @@ void CPLS2View::OnMouseMove(UINT nFlags, CPoint point)
 			}
 			dc.Ellipse(p1.x - 10, p1.y - 10, p1.x + 10, p1.y + 10);
 			break;
+		case LSAND:
+			if (point.x % 5 == 0 || point.y % 5 == 0) {
+				Invalidate();
+			}
+			CBitmap bitmap;
+			bitmap.LoadBitmapW(IDB_BITMAP4);
+			BITMAP bmpinfo;
+			bitmap.GetBitmap(&bmpinfo);
+
+			CDC dcmem;
+			dcmem.CreateCompatibleDC(pDC);
+			dcmem.SelectObject(&bitmap);
+
+			dc.BitBlt(p1.x-40, p1.y-20, bmpinfo.bmWidth, bmpinfo.bmHeight, &dcmem, 0, 0, SRCCOPY);
+			break;
 		}
+		
 	}
 
+
 	//"pDoc->ls.create < 0 && nFlags & MK_LBUTTON" 이 상태는 메뉴의 게이트 또는 단자를 클릭하지 않은 상태이며 마우스가 눌린상태,, 선을 그릴 수 있음. 
-	if (pDoc->ls.create < 0 && nFlags & MK_LBUTTON) {
+	if (pDoc->ls.create < 0 && nFlags & MK_LBUTTON && pDoc->ls.canDrawState == TRUE) {
 		//pDoc->ls.pif[p1.x / 10][p1.y / 10]->linevalue = pDoc->ls.pif[startline.x / 10][startline.y / 10]->linevalue;
 		//pDoc->ls.pif[p1.x / 10][p1.y / 10].gate = pDoc->ls.  /*->ls->isline*/;
 
@@ -369,3 +419,11 @@ void CPLS2View::Create_Output_BCLK()
 	pDoc->ls.create = LSOUTPUT; //  create를 LSOUTPUT(1)으로 만들어 output단자를 만들겠다고 알림.
 }
 
+
+void CPLS2View::Create_AndGate_BCLK()
+{
+	// TODO: 여기에 명령 처리기 코드를 추가합니다.
+	CPLS2Doc* pDoc = GetDocument();
+	pDoc->ls.count_and++;
+	pDoc->ls.create = LSAND; //  create를 LSOUTPUT(1)으로 만들어 output단자를 만들겠다고 알림.
+}

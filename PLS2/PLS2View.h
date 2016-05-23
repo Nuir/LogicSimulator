@@ -62,6 +62,7 @@ public:
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void Create_Input_BCLK();
 	afx_msg void Create_Output_BCLK();
+	afx_msg void Create_AndGate_BCLK();
 };
 
 #ifndef _DEBUG  // PLS2View.cpp의 디버그 버전
